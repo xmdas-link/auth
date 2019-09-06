@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Example - 微信扫码登录，嵌入</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" type="text/javascript"></script>
+    <script src="http://res.wx.qq.com/connect/zh_CN/htmledition/js/wxLogin.js" type="text/javascript"></script>
+</head>
+<body>
+<style>
+    body {
+        text-align: center;
+    }
+    #err-msg {
+        color: #F56C6C;
+        font-size: 14px;
+        height: 2em;
+    }
+</style>
+<h1>Example - 微信扫码登录，嵌入</h1>
+<div id="err-msg"></div>
+<div id="login_container">
+
+</div>
+
+<script type="text/javascript">
+
+    function LoadQrCode() {
+        $('#err-msg').html('')
+        $.ajax({
+            type: "GET",
+            url: "/auth/login/wechat_qrcode?type=json",
+            dataType: 'json',
+            success: function (ret) {
+                if (ret.code == 1) {
+                    var obj = new WxLogin({
+                        self_redirect:false,
+                        id:"login_container",
+                        appid: ret.data.appid,
+                        scope: ret.data.scope,
+                        redirect_uri: encodeURIComponent(ret.data.redirect_uri),
+                        state: ret.data.state,
+                        style: "",
+                        href: ""
+                    });
+                } else {
+                    $('#err-msg').html(ret.message || '未知错误')
+                }
+            }
+        })
+    }
+
+    $().ready(function () {
+        LoadQrCode()
+    })
+</script>
+</body>
+</html>

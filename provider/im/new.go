@@ -1,17 +1,24 @@
 package im
 
-import "golang.org/x/oauth2"
-
 func New(cfg *OAuthConfig) *Provider {
 	var (
 		p = &Provider{
-			Name:       Name,
-			BaseUrl:    cfg.MattermostUrl,
-			UrlVersion: "/api/v4",
+			Name:        Name,
+			OAuthConfig: cfg,
+			//BaseUrl:    cfg.MattermostUrl,
+			//UrlVersion: "/api/v4",
 		}
 	)
 
-	p.oauthCfg = &oauth2.Config{
+	if p.ApiVersion == "" {
+		p.ApiVersion = "/api/v4"
+	}
+
+	p.Client = &Client{
+		cfg,
+	}
+
+	/*p.oauthCfg = &oauth2.Config{
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.Secret,
 		RedirectURL:  cfg.CallbackUrl,
@@ -20,6 +27,6 @@ func New(cfg *OAuthConfig) *Provider {
 			TokenURL: cfg.MattermostUrl + "/oauth/access_token",
 		},
 		Scopes: []string{},
-	}
+	}*/
 	return p
 }

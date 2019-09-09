@@ -1,15 +1,13 @@
 package im
 
 import (
-	"context"
-	"github.com/gin-gonic/gin"
+	"dcx.com/tools/string_tool"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/xmdas-link/auth"
-	"golang.org/x/oauth2"
 	"log"
-	"net/http"
 	"time"
 )
 
@@ -19,16 +17,20 @@ type OAuthConfig struct {
 	ClientID      string // IM生成的APP的ClientID
 	Secret        string // IM定义的APP的密钥
 	MattermostUrl string // IM地址
+	ApiVersion    string // IM的api版本
 	CallbackUrl   string // APP授权的回调地址
+	Scopes        []string
 }
 
 type Provider struct {
-	DB         *gorm.DB
-	BaseUrl    string
-	UrlVersion string
-	Name       string
-	oauthCfg   *oauth2.Config
-	//*OAuthConfig
+	DB *gorm.DB
+	//BaseUrl    string
+	//UrlVersion string
+	Name    string
+	Session auth.Session
+	//oauthCfg   *oauth2.Config
+	*OAuthConfig
+	*Client
 }
 
 // 注册Provider时执行
@@ -46,6 +48,14 @@ func (p *Provider) OnProviderRegister(a *auth.GinAuth) error {
 		p.DB.AutoMigrate(&ImUser{})
 	}
 
+	if p.Session == nil {
+		p.Session = a.Config.Core.Session
+	}
+
+	if p.Session == nil {
+		return errors.New("未能从GinAuth获取Session配置")
+	}
+
 	return nil
 }
 
@@ -55,8 +65,14 @@ func (p *Provider) GetName() string {
 }
 
 func (p *Provider) OnGuideLogin(c *gin.Context) error {
-	url := p.oauthCfg.AuthCodeURL("state", oauth2.AccessTypeOffline)
-	c.Set("redirect", url)
+	var (
+		state = string_tool.GetRandomString(6)
+	)
+
+	p.Session.StartSession(c, true)
+	p.Session.SetValue(c, "im_state", state)
+	log.Printf(p.AuthCodeURL(state))
+	c.Set("redirect", p.AuthCodeURL(state))
 	return nil
 }
 
@@ -77,68 +93,73 @@ func (p *Provider) OnLoginCallback(c *gin.Context) (u auth.User, err error) {
 		return nil, fmt.Errorf("登录失败：%s", p.GetErrorReason(errMsg))
 	}
 
-	if code := c.Query("code"); code != "" {
+	var (
+		code  = c.Query("code")
+		state = c.Query("state")
+	)
 
-		client, authErr := p.NewClient(code)
-		if authErr != nil {
-			return nil, authErr
-		}
-
-		meData, err := client.GetMe()
-		if err != nil {
-			return nil, err
-		}
-
-		imUser, dbErr := p.GetUser(meData)
-		if dbErr != nil {
-			log.Printf("[im OnLoginCallback]%v", dbErr)
-			return nil, errors.New("数据库读取用户信息失败")
-		}
-
-		if !imUser.IsActive() {
-			return nil, errors.New("账号状态不可登录")
-		}
-
-		// 更新用户信息
-		imUser.Token, imUser.TokenExpired = client.GetAccessToken()
-
-		if meData.Nickname != "" {
-			imUser.Name = meData.Nickname
-		} else {
-			imUser.Name = meData.LastName + meData.FirstName
-		}
-
-		if dbErr := p.UpdateUser(imUser); dbErr != nil {
-			log.Printf("[im OnLoginCallback]%v", dbErr)
-			return nil, errors.New("数据库更新户信息失败")
-		}
-
-		u = &UserData{
-			ImUser:   imUser,
-			Provider: p.GetName(),
-		}
-		return u, nil
+	p.Session.StartSession(c, true)
+	imState := p.Session.GetValueString(c, "im_state")
+	if state == "" || imState != state {
+		//err = errors.New("state不匹配")
+		//return
 	}
-	return nil, errors.New("缺少必需的code参数！")
-}
 
-func (p *Provider) NewClient(code string) (*Client, error) {
+	if code == "" {
+		err = errors.New("授权登录失败")
+		return
+	}
 
-	httpClient := &http.Client{Timeout: 2 * time.Second}
-	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
+	token, errToken := p.GetAccessToken(code)
+	if errToken != nil {
+		log.Printf("[im OnLoginCallback]%v", errToken)
+		err = errors.New("获取Access Token失败")
+		return
+	}
 
-	token, err := p.oauthCfg.Exchange(ctx, code)
-
+	meData, err := p.GetMe(token)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Client{
-		BaseURL:    p.BaseUrl,
-		URLVersion: p.UrlVersion,
-		Token:      token,
-		Im:         p.oauthCfg.Client(ctx, token),
-	}, nil
+	imUser, dbErr := p.GetUser(meData)
+	if dbErr != nil {
+		log.Printf("[im OnLoginCallback]%v", dbErr)
+		return nil, errors.New("数据库读取用户信息失败")
+	}
+
+	if !imUser.IsActive() {
+		return nil, errors.New("账号状态不可登录")
+	}
+
+	// 更新用户信息
+	imUser.Token = token.AccessToken
+
+	// token到期时间
+	if token.Expires > 0 {
+		timeExpire := time.Unix(token.Expires, 0)
+		imUser.TokenExpired = &timeExpire
+	} else if token.ExpiresIn > 0 {
+		timeExpire := time.Now().Add(time.Duration(token.ExpiresIn) * time.Second)
+		imUser.TokenExpired = &timeExpire
+	}
+
+	if meData.Nickname != "" {
+		imUser.Name = meData.Nickname
+	} else {
+		imUser.Name = meData.LastName + meData.FirstName
+	}
+
+	if dbErr := p.UpdateUser(imUser); dbErr != nil {
+		log.Printf("[im OnLoginCallback]%v", dbErr)
+		return nil, errors.New("数据库更新户信息失败")
+	}
+
+	u = &UserData{
+		ImUser:   imUser,
+		Provider: p.GetName(),
+	}
+	return u, nil
 
 }
 

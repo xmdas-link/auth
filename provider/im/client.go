@@ -1,37 +1,73 @@
 package im
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/oauth2"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
+	"net/url"
+	"strings"
 )
 
 type Client struct {
-	BaseURL    string
+	*OAuthConfig
+	/*BaseURL    string
 	URLVersion string
 	Token      *oauth2.Token
-	Im         *http.Client
+	Im         *http.Client*/
 }
 
-func (c *Client) GetMe() (user ImUserData, err error) {
+func (c *Client) AuthCodeURL(state string) string {
 
-	rsp, httpErr := c.Im.Get(c.BaseURL + c.URLVersion + "/users/me")
+	// 拼接登录地址
+	var (
+		buf bytes.Buffer
+		v   = url.Values{}
+	)
+
+	v.Set("response_type", "code")
+	v.Set("client_id", c.ClientID)
+	v.Set("redirect_uri", c.CallbackUrl)
+	if len(c.Scopes) > 0 {
+		v.Set("scope", strings.Join(c.Scopes, " "))
+	}
+	if state != "" {
+		v.Set("state", state)
+	}
+
+	buf.WriteString(c.MattermostUrl + "/oauth/authorize?")
+	buf.WriteString(v.Encode())
+	return buf.String()
+}
+
+func (c *Client) GetMe(token *AccessToken) (user ImUserData, err error) {
+
+	var (
+		client = &http.Client{}
+	)
+	req, reqErr := http.NewRequest("GET", c.MattermostUrl+c.ApiVersion+"/users/me", strings.NewReader(""))
+	if reqErr != nil {
+		err = fmt.Errorf("请求IM API发生错误：%v", reqErr)
+		return
+	}
+
+	req.Header.Set("Authorization", token.TokenType+" "+token.AccessToken)
+
+	rsp, httpErr := client.Do(req)
 	if httpErr != nil {
 		err = fmt.Errorf("请求IM API发生错误：%v", httpErr)
 		return
 	}
+	defer rsp.Body.Close()
 
 	body, errRead := ioutil.ReadAll(rsp.Body)
 	if errRead != nil {
 		err = fmt.Errorf("读取IM API返回结果失败：%v", errRead)
 		return
 	}
-	defer rsp.Body.Close()
 
 	log.Print(string(body))
 
@@ -51,12 +87,43 @@ func (c *Client) GetMe() (user ImUserData, err error) {
 	return
 }
 
-func (c *Client) GetAccessToken() (token string, expired *time.Time) {
-	if c.Token != nil {
-		token = c.Token.AccessToken
-		expired = &c.Token.Expiry
+func (c *Client) GetAccessToken(code string) (*AccessToken, error) {
+	var (
+		v        = url.Values{}
+		tokenURL = c.MattermostUrl + "/oauth/access_token"
+		token    = AccessToken{}
+	)
+	v.Set("grant_type", "authorization_code")
+	v.Set("code", code)
+	v.Set("redirect_uri", c.CallbackUrl)
+	v.Set("client_id", c.ClientID)
+	v.Set("client_secret", c.Secret)
+
+	resp, err := http.Post(tokenURL, "application/x-www-form-urlencoded", strings.NewReader(v.Encode()))
+	if err != nil {
+		return nil, err
 	}
-	return
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Print(string(body))
+	if err := json.Unmarshal(body, &token); err != nil {
+		return nil, err
+	}
+
+	return &token, nil
+}
+
+type AccessToken struct {
+	AccessToken  string `json:"access_token"`
+	TokenType    string `json:"token_type"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in"` // at least PayPal returns string, while most return number
+	Expires      int64  `json:"expires"`    // broken Facebook spelling of expires_in
 }
 
 type ErrorData struct {

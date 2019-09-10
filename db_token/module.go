@@ -94,10 +94,11 @@ func (m *Module) NewToken(user map[string]string) (string, int64, error) {
 // 清除Token
 func (m *Module) ClearToken(token string) error {
 	var (
-		tx = m.DB
+		tx       = m.DB
+		tokenMd5 = m.EncodeToken(token)
 	)
 
-	return tx.Delete(&AuthUserToken{}, "token = ?", token).Error
+	return tx.Delete(&AuthUserToken{}, "token = ?", tokenMd5).Error
 }
 
 // 清除用户的Token

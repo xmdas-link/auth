@@ -106,7 +106,10 @@ func (m *Module) NewToken(user map[string]string) (string, int64, error) {
 
 // 清除Token
 func (m *Module) ClearToken(token string) error {
-	return m.client.Del(token).Err()
+	var (
+		tokenMd5 = m.EncodeToken(token)
+	)
+	return m.client.Del(tokenMd5).Err()
 }
 
 // 清除用户的Token

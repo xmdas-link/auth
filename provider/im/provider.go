@@ -211,13 +211,14 @@ func (p *Provider) GetImUser(id string) (*ImUser, error) {
 func (p *Provider) NewUser(imData ImUserData, c *gin.Context) (*ImUser, error) {
 
 	var (
-		newUserData = map[string]string{
-			"name": imData.Nickname,
-			"role": "common",
-		}
 		data = ImUser{
 			ImID:      imData.ID,
 			LoginName: imData.Username,
+		}
+		newUserData = map[string]string{
+			"name":       imData.Nickname,
+			"role":       "common",
+			"header_url": p.GetHeaderUrl(data.ImID),
 		}
 		err error
 	)

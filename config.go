@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"github.com/xmdas-link/auth/user_store"
 	"log"
 )
 
@@ -44,6 +45,9 @@ type Config struct {
 
 		// token管理
 		AuthToken AuthToken
+
+		// 用户存储
+		UserStore user_store.UserStoreInterface
 
 		// Session
 		Session Session

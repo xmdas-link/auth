@@ -10,14 +10,20 @@ type UserData struct {
 }
 
 func (u *UserData) GetID() string {
-	return fmt.Sprint(u.ID)
+	if u.ImUser.UserBase != nil {
+		return u.ImUser.UserBase.GetId()
+	}
+	return ""
 }
 
 func (u *UserData) GetProvider() string {
 	return u.Provider
 }
 func (u *UserData) GetRole() string {
-	return u.Role
+	if u.ImUser.UserBase != nil {
+		return u.UserBase.GetRole()
+	}
+	return ""
 }
 
 func (u *UserData) GetToken() string {
@@ -38,8 +44,7 @@ func (u *UserData) GetMapData() map[string]string {
 		"id":       fmt.Sprint(u.ID),
 		"provider": u.Provider,
 		"name":     u.Name,
-		"role":     u.Role,
+		"role":     u.GetRole(),
 		"user":     u.LoginName,
-		"active":   fmt.Sprint(u.Active),
 	}
 }

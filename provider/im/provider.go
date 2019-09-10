@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/xmdas-link/auth"
+	"github.com/xmdas-link/auth/user_store"
 	"github.com/xmdas-link/tools/string_tool"
 	"log"
 	"time"
@@ -26,9 +27,10 @@ type Provider struct {
 	DB *gorm.DB
 	//BaseUrl    string
 	//UrlVersion string
-	Name     string
-	Security bool
-	Session  auth.Session
+	Name      string
+	Security  bool
+	Session   auth.Session
+	UserStore user_store.UserStoreInterface
 	//oauthCfg   *oauth2.Config
 	*OAuthConfig
 	*Client
@@ -55,6 +57,14 @@ func (p *Provider) OnProviderRegister(a *auth.GinAuth) error {
 
 	if p.Security && p.Session == nil {
 		return errors.New("未能从GinAuth获取Session配置")
+	}
+
+	if p.UserStore == nil {
+		p.UserStore = a.Config.Core.UserStore
+	}
+
+	if p.UserStore == nil {
+		return errors.New("未能从GinAuth获取UserStore配置")
 	}
 
 	return nil
@@ -123,18 +133,33 @@ func (p *Provider) OnLoginCallback(c *gin.Context) (u auth.User, err error) {
 		return
 	}
 
-	meData, err := p.GetMe(token)
-	if err != nil {
+	meData, imErr := p.GetMe(token)
+	if imErr != nil {
+		return nil, imErr
+	}
+
+	// 查找imUser
+	imUser, dbErr := p.GetImUser(meData.ID)
+	if dbErr != nil && gorm.IsRecordNotFoundError(dbErr) {
+		// 需要创建新用户
+		if imUser, dbErr = p.NewUser(meData, c); dbErr != nil {
+			log.Printf("[im OnLoginCallback]%v", dbErr)
+			err = errors.New("创建新用户失败！")
+			return
+		}
+	}
+
+	if imUser == nil || imUser.ID == 0 {
+		return nil, errors.New("获取IM用户信息失败")
+	}
+
+	if imUser.UserBase, err = p.UserStore.Get(imUser.UID, c); err != nil {
+		log.Printf("[im OnLoginCallback]%v", err)
+		err = errors.New("获取UserStore内用户信息失败")
 		return nil, err
 	}
 
-	imUser, dbErr := p.GetUser(meData)
-	if dbErr != nil {
-		log.Printf("[im OnLoginCallback]%v", dbErr)
-		return nil, errors.New("数据库读取用户信息失败")
-	}
-
-	if !imUser.IsActive() {
+	if !imUser.UserBase.IsActive() {
 		return nil, errors.New("账号状态不可登录")
 	}
 
@@ -169,29 +194,47 @@ func (p *Provider) OnLoginCallback(c *gin.Context) (u auth.User, err error) {
 
 }
 
-func (p *Provider) GetUser(imData ImUserData) (*ImUser, error) {
+func (p *Provider) GetImUser(id string) (*ImUser, error) {
 
 	var (
 		tx   = p.DB
 		data = ImUser{}
-		err  error
 	)
 
-	// 获取用户如果存在
-	err = tx.Find(&data, "im_id = ?", imData.ID).Error
-	if err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			data.ImID = imData.ID
-			data.LoginName = imData.Username
-			data.Role = "common"
-			err = tx.Create(&data).Error
+	err := tx.Find(&data, "im_id = ?", id).Error
+	return &data, err
+}
+
+func (p *Provider) NewUser(imData ImUserData, c *gin.Context) (*ImUser, error) {
+
+	var (
+		newUserData = map[string]string{
+			"name": imData.Nickname,
+			"role": "common",
 		}
+		data = ImUser{
+			ImID:      imData.ID,
+			LoginName: imData.Username,
+		}
+		err error
+	)
+
+	if imData.Nickname != "" {
+		newUserData["name"] = imData.Nickname
+	} else {
+		newUserData["name"] = imData.LastName + imData.FirstName
 	}
 
+	data.UserBase, data.UID, err = p.UserStore.New(newUserData, c)
 	if err != nil {
 		return nil, err
+	} else if data.UID == "" {
+		return nil, errors.New("获得新用户ID失败！")
 	}
 
+	if dbErr := p.DB.Create(&data).Error; dbErr != nil {
+		return nil, dbErr
+	}
 	return &data, nil
 }
 

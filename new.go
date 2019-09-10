@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"github.com/xmdas-link/auth/user_store"
 )
 
 func New(cfg Config) (*GinAuth, error) {
@@ -37,6 +38,10 @@ func New(cfg Config) (*GinAuth, error) {
 
 	if cfg.Core.AuthToken == nil {
 		return nil, errors.New("缺少Core.AuthToken定义！")
+	}
+
+	if cfg.Core.UserStore == nil {
+		cfg.Core.UserStore = user_store.New(cfg.Core.DB)
 	}
 
 	ga.Config = cfg

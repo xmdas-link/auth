@@ -186,9 +186,12 @@ func (p *Provider) OnLoginCallback(c *gin.Context) (u auth.User, err error) {
 		return nil, errors.New("数据库更新户信息失败")
 	}
 
+	// log.Printf("[im OnLoginCallback]头像地址：", p.GetHeaderUrl(imUser.ImID))
+
 	u = &UserData{
-		ImUser:   imUser,
-		Provider: p.GetName(),
+		ImUser:    imUser,
+		Provider:  p.GetName(),
+		HeaderUrl: p.GetHeaderUrl(imUser.ImID),
 	}
 	return u, nil
 

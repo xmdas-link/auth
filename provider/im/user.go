@@ -6,6 +6,7 @@ type UserData struct {
 	Provider  string
 	Token     string
 	ExpiredAt int64
+	HeaderUrl string
 	*ImUser
 }
 
@@ -41,10 +42,11 @@ func (u *UserData) SetToken(v string, expire int64) {
 
 func (u *UserData) GetMapData() map[string]string {
 	return map[string]string{
-		"id":       fmt.Sprint(u.ID),
-		"provider": u.Provider,
-		"name":     u.Name,
-		"role":     u.GetRole(),
-		"user":     u.LoginName,
+		"id":         fmt.Sprint(u.ID),
+		"provider":   u.Provider,
+		"name":       u.Name,
+		"role":       u.GetRole(),
+		"user":       u.LoginName,
+		"header_url": u.HeaderUrl,
 	}
 }

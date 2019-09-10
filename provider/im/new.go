@@ -16,6 +16,7 @@ func New(cfg *OAuthConfig) *Provider {
 
 	p.Client = &Client{
 		cfg,
+		cfg.MattermostUrl + cfg.ApiVersion,
 	}
 
 	/*p.oauthCfg = &oauth2.Config{

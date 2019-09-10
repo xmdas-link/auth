@@ -14,6 +14,7 @@ import (
 
 type Client struct {
 	*OAuthConfig
+	ApiBase string
 	/*BaseURL    string
 	URLVersion string
 	Token      *oauth2.Token
@@ -43,12 +44,16 @@ func (c *Client) AuthCodeURL(state string) string {
 	return buf.String()
 }
 
+func (c *Client) GetHeaderUrl(imId string) string {
+	return fmt.Sprintf("%s/users/%s/image", c.ApiBase, imId)
+}
+
 func (c *Client) GetMe(token *AccessToken) (user ImUserData, err error) {
 
 	var (
 		client = &http.Client{}
 	)
-	req, reqErr := http.NewRequest("GET", c.MattermostUrl+c.ApiVersion+"/users/me", strings.NewReader(""))
+	req, reqErr := http.NewRequest("GET", c.ApiBase+"/users/me", strings.NewReader(""))
 	if reqErr != nil {
 		err = fmt.Errorf("请求IM API发生错误：%v", reqErr)
 		return

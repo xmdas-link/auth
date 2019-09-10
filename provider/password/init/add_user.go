@@ -1,11 +1,11 @@
 package main
 
 import (
-	"dcx.com/auth/provider/password"
 	"flag"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/xmdas-link/auth/provider/password"
 	"os"
 )
 

@@ -1,11 +1,11 @@
 package wechat_qrcode
 
 import (
-	"github.com/gin-gonic/gin"
-	"dcx.com/tools/string_tool"
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/xmdas-link/auth"
+	"github.com/xmdas-link/tools/string_tool"
 	"log"
 	"time"
 )

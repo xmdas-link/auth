@@ -1,12 +1,12 @@
 package im
 
 import (
-	"dcx.com/tools/string_tool"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/xmdas-link/auth"
+	"github.com/xmdas-link/tools/string_tool"
 	"log"
 	"time"
 )
@@ -26,8 +26,9 @@ type Provider struct {
 	DB *gorm.DB
 	//BaseUrl    string
 	//UrlVersion string
-	Name    string
-	Session auth.Session
+	Name     string
+	Security bool
+	Session  auth.Session
 	//oauthCfg   *oauth2.Config
 	*OAuthConfig
 	*Client
@@ -52,7 +53,7 @@ func (p *Provider) OnProviderRegister(a *auth.GinAuth) error {
 		p.Session = a.Config.Core.Session
 	}
 
-	if p.Session == nil {
+	if p.Security && p.Session == nil {
 		return errors.New("未能从GinAuth获取Session配置")
 	}
 
@@ -69,9 +70,12 @@ func (p *Provider) OnGuideLogin(c *gin.Context) error {
 		state = string_tool.GetRandomString(6)
 	)
 
-	p.Session.StartSession(c, true)
-	p.Session.SetValue(c, "im_state", state)
-	log.Printf(p.AuthCodeURL(state))
+	if p.Security {
+		p.Session.StartSession(c, true)
+		p.Session.SetValue(c, "im_state", state)
+	}
+
+	// log.Printf(p.AuthCodeURL(state))
 	c.Set("redirect", p.AuthCodeURL(state))
 	return nil
 }
@@ -98,11 +102,13 @@ func (p *Provider) OnLoginCallback(c *gin.Context) (u auth.User, err error) {
 		state = c.Query("state")
 	)
 
-	p.Session.StartSession(c, true)
-	imState := p.Session.GetValueString(c, "im_state")
-	if state == "" || imState != state {
-		//err = errors.New("state不匹配")
-		//return
+	if p.Security {
+		p.Session.StartSession(c, true)
+		imState := p.Session.GetValueString(c, "im_state")
+		if state == "" || imState != state {
+			err = errors.New("state不匹配")
+			return
+		}
 	}
 
 	if code == "" {

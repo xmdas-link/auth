@@ -19,6 +19,10 @@ func New(cfg Config) (*GinAuth, error) {
 		cfg.Path.TokenKey = "jwt"
 	}
 
+	if cfg.Path.HeaderKey == "" {
+		cfg.Path.HeaderKey = "X-Token"
+	}
+
 	if cfg.Response.DefaultResultType == "" {
 		cfg.Response.DefaultResultType = RspTypeJSON
 	}

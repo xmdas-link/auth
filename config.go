@@ -18,6 +18,8 @@ type Config struct {
 		RedirectAfterLogin string
 		// Token写入cookie时使用名字
 		TokenKey string
+		// Token在头部请求时的名字
+		HeaderKey string
 	}
 
 	Response struct {

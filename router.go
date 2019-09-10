@@ -33,8 +33,8 @@ func (a *GinAuth) MountAuth() error {
 	if a.Handlers.LogoutHandler == nil {
 		a.Handlers.LogoutHandler = DefaultLogoutHandler
 	}
-	rGroup.GET("/logout/:name", NewGinHandler(a.Handlers.LogoutHandler, a))
-	rGroup.POST("/logout/:name", NewGinHandler(a.Handlers.LogoutHandler, a))
+	rGroup.GET("/logout", NewHandler(a.Handlers.LogoutHandler, a))
+	rGroup.POST("/logout", NewHandler(a.Handlers.LogoutHandler, a))
 
 	if a.Handlers.LoginCallbackHandler == nil {
 		a.Handlers.LoginCallbackHandler = DefaultLoginCallbackHandler

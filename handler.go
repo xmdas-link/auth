@@ -7,7 +7,7 @@ type GinAuthHandler func(c *gin.Context, p AuthProvider, r AuthRender)
 type GinAuthHandlers struct {
 	GetLoginHandler      GinAuthHandler
 	PostLoginHandler     GinAuthHandler
-	LogoutHandler        GinAuthHandler
+	LogoutHandler        func(c *gin.Context, a *GinAuth)
 	LoginCallbackHandler GinAuthHandler
 }
 
@@ -33,5 +33,13 @@ func NewGinHandler(h GinAuthHandler, a *GinAuth) func(c *gin.Context) {
 		}
 
 		h(c, authP, authR)
+	}
+}
+
+func NewHandler(h func(c *gin.Context, a *GinAuth), a *GinAuth) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.Set(CtxKeyGinAuth, a)
+		c.Set(CtxKeyResultType, a.Config.Response.DefaultResultType)
+		h(c, a)
 	}
 }

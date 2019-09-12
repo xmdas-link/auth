@@ -29,6 +29,22 @@ func (a *GinAuth) AuthTokenMiddleware() func(c *gin.Context) {
 			return
 		}
 
+		if uid, exist := user["uid"]; exist && a.Config.Core.UserStore != nil {
+			userBase, err := a.Config.Core.UserStore.Get(uid, c)
+			if err != nil {
+				DefaultErrorResponse(c, errors.New("User not found!"))
+				c.Abort()
+				return
+			}
+			if !userBase.IsActive() {
+				DefaultErrorResponse(c, errors.New("Account not active!"))
+				c.Abort()
+				return
+			}
+
+			user["role"] = userBase.GetRole()
+		}
+
 		c.Set(CtxKeyUserRole, user["role"])
 		c.Set(CtxKeyAuthUser, user)
 

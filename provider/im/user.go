@@ -41,7 +41,7 @@ func (u *UserData) SetToken(v string, expire int64) {
 }
 
 func (u *UserData) GetMapData() map[string]string {
-	return map[string]string{
+	data := map[string]string{
 		"id":         fmt.Sprint(u.ID),
 		"provider":   u.Provider,
 		"name":       u.Name,
@@ -49,4 +49,10 @@ func (u *UserData) GetMapData() map[string]string {
 		"user":       u.LoginName,
 		"header_url": u.HeaderUrl,
 	}
+
+	if u.UserBase != nil {
+		data["uid"] = u.UserBase.GetId()
+	}
+
+	return data
 }

@@ -19,7 +19,7 @@ import (
 func main() {
 
 	var (
-		gAuth              *auth.GinAuth
+		gAuth             *auth.GinAuth
 		dbToken           *db_token.Module
 		cfg               = auth.Config{}
 		router            = gin.Default()
@@ -55,8 +55,8 @@ func main() {
 	// 配置登录
 	cfg.Path.Mount = "/auth"
 	cfg.Path.TokenKey = "example_jwt"
-	cfg.Path.Domain = "192.168.0.88"
-	cfg.Path.RedirectAfterLogin = "http://192.168.0.88:9528"
+	cfg.Path.Domain = "127.0.0.1"
+	cfg.Path.RedirectAfterLogin = "http://127.0.0.1:9528"
 	cfg.Core.Router = router
 	cfg.Core.DB = db
 	cfg.Core.AuthToken = dbToken
@@ -77,9 +77,9 @@ func main() {
 
 	// IM登录
 	imProvider := im.New(&im.OAuthConfig{
-		ClientID:      "go1x44km57n7uq6orbza1dwfdh",
-		Secret:        "bf5kscb9xifqfdssri9fcwqzko",
-		MattermostUrl: "http://im.dcx.com",
+		ClientID:      "your_client_id",
+		Secret:        "your_secret",
+		MattermostUrl: "http://your.domain",
 		CallbackUrl:   "http://192.168.0.88:8009/auth/login_callback/im",
 	})
 
@@ -91,9 +91,9 @@ func main() {
 
 	// 微信扫码登录
 	wxProvider := wechat_qrcode.New(&wechat_qrcode.OAuthConfig{
-		ClientID:    "wxf37adf1d95e0d3cc",
-		Secret:      "8a3cc253cb9b3293aeb2028c426ee2eb",
-		CallbackUrl: "http://xmdas-link.oicp.io:8009/auth/login_callback/wechat_qrcode",
+		ClientID:    "your_client_id",
+		Secret:      "your_secret",
+		CallbackUrl: "http://your.domain/auth/login_callback/wechat_qrcode",
 		Scopes:      []string{"snsapi_login"},
 	})
 	if regErr := gAuth.RegisterProvider(wxProvider, oauthRender); regErr != nil {

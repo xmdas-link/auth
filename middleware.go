@@ -14,8 +14,7 @@ func (a *GinAuth) AuthTokenMiddleware() func(c *gin.Context) {
 		)
 
 		if token == "" {
-			err := errors.New("Token is required!")
-			DefaultErrorResponse(c, err)
+			DefaultErrorResponse(c, errors.New("Token is required!"))
 			c.Abort()
 			return
 		}
@@ -23,8 +22,8 @@ func (a *GinAuth) AuthTokenMiddleware() func(c *gin.Context) {
 		authToken := a.Config.Core.AuthToken
 		user := authToken.FindToken(token)
 		if user == nil {
-			err := errors.New("Token invalid!")
-			DefaultErrorResponse(c, err)
+			c.Set(CtxKeyErrorCode, DefaultErrorTokenInvalid)
+			DefaultErrorResponse(c, errors.New("Token invalid!"))
 			c.Abort()
 			return
 		}
@@ -32,11 +31,13 @@ func (a *GinAuth) AuthTokenMiddleware() func(c *gin.Context) {
 		if uid, exist := user["uid"]; exist && a.Config.Core.UserStore != nil {
 			userBase, err := a.Config.Core.UserStore.Get(uid, c)
 			if err != nil {
+				c.Set(CtxKeyErrorCode, DefaultErrorTokenInvalid)
 				DefaultErrorResponse(c, errors.New("User not found!"))
 				c.Abort()
 				return
 			}
 			if !userBase.IsActive() {
+				c.Set(CtxKeyErrorCode, DefaultErrorTokenInvalid)
 				DefaultErrorResponse(c, errors.New("Account not active!"))
 				c.Abort()
 				return

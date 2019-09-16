@@ -30,7 +30,10 @@ func DefaultErrorResponse(c *gin.Context, err error) {
 }
 
 func DefaultJsonError(c *gin.Context, errMsg string) {
-	result := NewJSONResult(gin.H{"code": 0, "message": errMsg})
+	var (
+		code = c.GetInt(CtxKeyErrorCode)
+	)
+	result := NewJSONResult(gin.H{"code": code, "message": errMsg})
 	result.Response(c)
 }
 

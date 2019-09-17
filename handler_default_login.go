@@ -66,7 +66,7 @@ func DefaultLoginCallbackHandler(c *gin.Context, p AuthProvider, r AuthRender) {
 
 func AfterLogin(c *gin.Context, r AuthRender, user User) {
 	var (
-		gAuth    = GetAuthFromContext(c)
+		gAuth   = GetAuthFromContext(c)
 		token   string
 		expired int64
 		err     error
@@ -107,10 +107,11 @@ func doResponse(c *gin.Context, ret *Result, err error) {
 		return
 	}
 
-	if ret == nil {
-		DefaultErrorResponse(c, ErrMissingResult)
-		return
+	// 如果ret为空，则认为已在render中处理了输出
+	if ret != nil {
+		ret.Response(c)
+		//DefaultErrorResponse(c, ErrMissingResult)
+		//return
 	}
 
-	ret.Response(c)
 }

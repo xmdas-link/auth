@@ -32,7 +32,7 @@ type Config struct {
 
 		NotFoundHandler func(c *gin.Context)
 		// 捕获到预设之外的错误时，显示错误用的
-		ErrorHandler func(c *gin.Context)
+		//ErrorHandler func(c *gin.Context)
 	}
 
 	Core struct {

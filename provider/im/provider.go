@@ -9,6 +9,7 @@ import (
 	"github.com/xmdas-link/auth/user_store"
 	"github.com/xmdas-link/tools/string_tool"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -77,7 +78,8 @@ func (p *Provider) GetName() string {
 
 func (p *Provider) OnGuideLogin(c *gin.Context) error {
 	var (
-		state = string_tool.GetRandomString(6)
+		from  = c.Query("from")
+		state = from + "_" + string_tool.GetRandomString(6)
 	)
 
 	if p.Security {
@@ -119,6 +121,11 @@ func (p *Provider) OnLoginCallback(c *gin.Context) (u auth.User, err error) {
 			err = errors.New("state不匹配")
 			return
 		}
+	}
+
+	// 分解state信息，找到请求来源
+	if stateInfo := strings.Split(state, "_"); len(stateInfo) == 2 {
+		c.Set("from", stateInfo[0])
 	}
 
 	if code == "" {

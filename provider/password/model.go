@@ -2,6 +2,10 @@ package password
 
 import "time"
 
+var (
+	UserTableName = "op_user"
+)
+
 type User struct {
 	ID        uint32 `gorm:"primary_key;AUTO_INCREMENT"`
 	CreatedAt time.Time
@@ -15,4 +19,8 @@ type User struct {
 
 func (u *User) IsActive() bool {
 	return u.Active == 1
+}
+
+func (User) TableName() string {
+	return UserTableName
 }

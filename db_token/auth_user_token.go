@@ -2,6 +2,10 @@ package db_token
 
 import "time"
 
+var (
+	TokenTableName = "op_auth_user_token"
+)
+
 type AuthUserToken struct {
 	ID        uint   `gorm:"primary_key;AUTO_INCREMENT"`
 	Uid       string `gorm:"size:32;index:ind_uid_provider"`
@@ -11,4 +15,8 @@ type AuthUserToken struct {
 	IP        string `gorm:"size:32"`
 	ExpiredAt int64  `gorm:"index:idx_expired_at"`
 	CreatedAt time.Time
+}
+
+func (AuthUserToken) TableName() string {
+	return TokenTableName
 }

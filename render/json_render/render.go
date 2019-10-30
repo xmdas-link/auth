@@ -6,7 +6,8 @@ import (
 )
 
 type Render struct {
-	init bool
+	init    bool
+	LogFunc func(c *gin.Context, Action string, result interface{})
 }
 
 func (r *Render) OnRenderRegister(a *auth.GinAuth) error {
@@ -27,7 +28,12 @@ func (r *Render) Error(c *gin.Context) (ret *auth.Result, err error) {
 		msg = "错误信息未定义"
 	}
 
-	ret = auth.NewJSONResult(gin.H{"code": code, "message": msg})
+	result := gin.H{"code": code, "message": msg}
+
+	ret = auth.NewJSONResult(result)
+	if r.LogFunc != nil {
+		r.LogFunc(c, "Error", result)
+	}
 	return
 }
 
@@ -39,7 +45,12 @@ func (r *Render) GuideLogin(c *gin.Context) (ret *auth.Result, err error) {
 	}
 
 	data, _ := c.Get("data")
-	ret = auth.NewJSONResult(gin.H{"code": 1, "data": data})
+	result := gin.H{"code": 1, "data": data}
+
+	ret = auth.NewJSONResult(result)
+	if r.LogFunc != nil {
+		r.LogFunc(c, "GuideLogin", result)
+	}
 	return
 }
 
@@ -54,7 +65,11 @@ func (r *Render) SuccessLogin(c *gin.Context, u auth.User) (ret *auth.Result, er
 		"expired": u.GetExpired(),
 	}
 
-	ret = auth.NewJSONResult(gin.H{"code": 1, "data": data, "message": ""})
+	result := gin.H{"code": 1, "data": data, "message": ""}
+	ret = auth.NewJSONResult(result)
+	if r.LogFunc != nil {
+		r.LogFunc(c, "SuccessLogin", result)
+	}
 	return
 }
 
@@ -62,6 +77,10 @@ func (r *Render) Logout(c *gin.Context) (ret *auth.Result, err error) {
 	if _, hasErr := c.Get("err"); hasErr {
 		return r.Error(c)
 	}
-	ret = auth.NewJSONResult(gin.H{"code": 1, "message": "已退出"})
+	result := gin.H{"code": 1, "message": "已退出"}
+	ret = auth.NewJSONResult(result)
+	if r.LogFunc != nil {
+		r.LogFunc(c, "Logout", result)
+	}
 	return
 }

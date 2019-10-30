@@ -70,7 +70,7 @@ func (r *Render) Logout(c *gin.Context) (ret *auth.Result, err error) {
 	}
 
 	if redirect := c.GetString("redirect"); redirect == "" {
-		ret = auth.NewJSONResult(gin.H{"code": 1, "message": "已退出"})
+		ret = auth.NewJSONResult(gin.H{"code": 1, "data": map[string]interface{}{}, "message": "已退出"})
 	} else {
 		ret = auth.NewRedirectResult(redirect)
 	}

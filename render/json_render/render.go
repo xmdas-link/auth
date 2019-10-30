@@ -77,7 +77,7 @@ func (r *Render) Logout(c *gin.Context) (ret *auth.Result, err error) {
 	if _, hasErr := c.Get("err"); hasErr {
 		return r.Error(c)
 	}
-	result := gin.H{"code": 1, "message": "已退出"}
+	result := gin.H{"code": 1, "data": map[string]interface{}{}, "message": "已退出"}
 	ret = auth.NewJSONResult(result)
 	if r.LogFunc != nil {
 		r.LogFunc(c, "Logout", result)

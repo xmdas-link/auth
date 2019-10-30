@@ -79,10 +79,10 @@ func (m *Module) NewToken(user map[string]string) (string, int64, error) {
 	)
 
 	t.Claims = uClaims
-	token, err = t.SignedString(m.signKey)
+	jwtToken, err := t.SignedString(m.signKey)
 	if err == nil {
 		// 保存token
-		err = m.StoreToken(uClaims, token)
+		token, err = m.StoreToken(uClaims, jwtToken)
 	}
 	if err != nil {
 		log.Printf("ERROR: [db_token.NewToken]%v", err)
@@ -92,12 +92,10 @@ func (m *Module) NewToken(user map[string]string) (string, int64, error) {
 }
 
 // 清除Token
-func (m *Module) ClearToken(token string) error {
+func (m *Module) ClearToken(tokenMd5 string) error {
 	var (
-		tx       = m.DB
-		tokenMd5 = m.EncodeToken(token)
+		tx = m.DB
 	)
-
 	return tx.Delete(&AuthUserToken{}, "token = ?", tokenMd5).Error
 }
 
@@ -111,23 +109,19 @@ func (m *Module) ClearTokenOfUser(uid string, provider string) error {
 }
 
 // 查找token
-func (m *Module) FindToken(token string) (user map[string]string) {
+func (m *Module) FindToken(tokenMd5 string) (user map[string]string) {
 
 	var (
-		tx       = m.DB
-		count    = 0
-		tokenMd5 = m.EncodeToken(token)
+		tx        = m.DB
+		userToken = AuthUserToken{}
 	)
 
-	if dbErr := tx.Model(&AuthUserToken{}).Where("token = ? AND token_info = ?", tokenMd5, token).Count(&count).Error; dbErr != nil {
+	if dbErr := tx.First(&userToken, "token = ?", tokenMd5).Error; dbErr != nil {
 		log.Printf("ERROR: [db_token.FindToken]%v", dbErr)
-		return nil
-	} else if count == 0 {
-		// token不存在
 		return nil
 	}
 
-	tokenObj, err := jwt.ParseWithClaims(token, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+	tokenObj, err := jwt.ParseWithClaims(userToken.TokenInfo, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return m.verifyKey, nil
 	})
 
@@ -143,35 +137,35 @@ func (m *Module) FindToken(token string) (user map[string]string) {
 	return nil
 }
 
-func (m *Module) StoreToken(claim *UserClaims, token string) error {
+func (m *Module) StoreToken(claim *UserClaims, jwtToken string) (string, error) {
 	var (
 		tx       = m.DB
 		user     = claim.User
-		tokenMd5 = m.EncodeToken(token)
+		tokenMd5 = m.EncodeToken(jwtToken)
 	)
 
 	if user["id"] == "" || user["provider"] == "" || user["ip"] == "" {
-		return errors.New("User缺少必要的字段")
+		return "", errors.New("User缺少必要的字段")
 	}
 
-	log.Printf("StoreToken:len(%d):%v", len(token), token)
+	log.Printf("StoreToken:len(%d):%v", len(jwtToken), jwtToken)
 
 	// 创建或覆盖
 	if m.ExistUser(user["id"], user["provider"]) {
-		return tx.Model(AuthUserToken{}).Where("uid = ? AND provider = ?", user["id"], user["provider"]).Update(map[string]interface{}{
+		return tokenMd5, tx.Model(AuthUserToken{}).Where("uid = ? AND provider = ?", user["id"], user["provider"]).Update(map[string]interface{}{
 			"ip":         user["ip"],
 			"token":      tokenMd5,
-			"token_info": token,
+			"token_info": jwtToken,
 			"expired_at": claim.ExpiresAt,
 		}).Error
 	}
 
-	return tx.Create(&AuthUserToken{
+	return tokenMd5, tx.Create(&AuthUserToken{
 		Uid:       user["id"],
 		Provider:  user["provider"],
 		IP:        user["ip"],
 		Token:     tokenMd5,
-		TokenInfo: token,
+		TokenInfo: jwtToken,
 		ExpiredAt: claim.ExpiresAt,
 	}).Error
 
@@ -188,8 +182,8 @@ func (m *Module) ExistUser(id string, provider string) bool {
 	return count > 0
 }
 
-func (m *Module) EncodeToken(token string) string {
+func (m *Module) EncodeToken(jwtToken string) string {
 	h := md5.New()
-	h.Write([]byte(token))
+	h.Write([]byte(jwtToken))
 	return hex.EncodeToString(h.Sum(nil))
 }

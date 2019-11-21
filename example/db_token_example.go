@@ -82,7 +82,7 @@ func main() {
 		IsShowNoiseText:    true,
 		IsShowSlimeLine:    false,
 		IsShowSineLine:     false,
-		CaptchaLen:         4,
+		CaptchaLen:         1,
 	}
 
 	// 账号登录渲染

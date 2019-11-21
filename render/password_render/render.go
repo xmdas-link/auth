@@ -39,8 +39,9 @@ func (r *Render) GuideLogin(c *gin.Context) (ret *auth.Result, err error) {
 		}
 	)
 	if c.GetString("refresh") == "captcha" {
-		value["captchaImg"] = c.GetString("captchaImg")
-		value["captchaId"] = c.GetString("captchaId")
+		value["data"], _ = c.Get("data")
+		//value["captchaImg"] = c.GetString("captchaImg")
+		//value["captchaId"] = c.GetString("captchaId")
 		ret = auth.NewJSONResult(value)
 	} else {
 		ret = auth.NewTmplResult("password_login.tmpl", value)

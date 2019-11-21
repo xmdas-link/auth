@@ -50,8 +50,10 @@ func (p *Provider) OnGuideLogin(c *gin.Context) error {
 			base64Png := base64Captcha.CaptchaWriteToBase64Encoding(capC)
 			//log.Print("验证码：", idKeyC)
 			//log.Print("base64", base64Png)
-			c.Set("captchaImg", base64Png)
-			c.Set("captchaId", idKeyC)
+			c.Set("data", map[string]interface{}{
+				"captchaImg": base64Png,
+				"captchaId":  idKeyC,
+			})
 			c.Set("refresh", "captcha")
 		}
 	}

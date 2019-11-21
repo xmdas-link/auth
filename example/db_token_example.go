@@ -4,11 +4,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/mojocn/base64Captcha"
 	"github.com/xmdas-link/auth"
 	"github.com/xmdas-link/auth/db_token"
 	"github.com/xmdas-link/auth/provider/im"
 	"github.com/xmdas-link/auth/provider/password"
-	"github.com/xmdas-link/auth/provider/wechat_qrcode"
 	"github.com/xmdas-link/auth/render/oauth_render"
 	"github.com/xmdas-link/auth/render/password_render"
 	"net/http"
@@ -24,8 +24,8 @@ func main() {
 		cfg               = auth.Config{}
 		router            = gin.Default()
 		db, err           = gorm.Open("mysql", "root:@(127.0.0.1:3306)/gin_test?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai")
-		publicKey, _      = filepath.Abs("keys/token_key.pub")
-		privateKye, _     = filepath.Abs("keys/token_key")
+		publicKey, _      = filepath.Abs("keys/rsa_public_key.pem")
+		privateKey, _     = filepath.Abs("keys/rsa_private_key.pem")
 		templateFolder, _ = filepath.Abs("templates/*")
 	)
 
@@ -47,7 +47,7 @@ func main() {
 		DB:             db,
 		ExpireDuration: time.Hour * 24, // Token 默认有效期
 		PublicKeyPath:  publicKey,
-		PrivateKeyPath: privateKye,
+		PrivateKeyPath: privateKey,
 	}); err != nil {
 		panic(err)
 	}
@@ -68,6 +68,22 @@ func main() {
 
 	// 注册登录方式
 	passProvider := password.New()
+	// 配置验证码
+	passProvider.Captcha = &base64Captcha.ConfigCharacter{
+		Height: 40,
+		Width:  200,
+		//const CaptchaModeNumber:数字,CaptchaModeAlphabet:字母,CaptchaModeArithmetic:算术,CaptchaModeNumberAlphabet:数字字母混合.
+		Mode:               base64Captcha.CaptchaModeArithmetic,
+		ComplexOfNoiseText: base64Captcha.CaptchaComplexLower,
+		ComplexOfNoiseDot:  base64Captcha.CaptchaComplexLower,
+		IsUseSimpleFont:    true,
+		IsShowHollowLine:   false,
+		IsShowNoiseDot:     false,
+		IsShowNoiseText:    true,
+		IsShowSlimeLine:    false,
+		IsShowSineLine:     false,
+		CaptchaLen:         4,
+	}
 
 	// 账号登录渲染
 	passRender := &password_render.Render{}
@@ -90,7 +106,7 @@ func main() {
 	}
 
 	// 微信扫码登录
-	wxProvider := wechat_qrcode.New(&wechat_qrcode.OAuthConfig{
+	/*wxProvider := wechat_qrcode.New(&wechat_qrcode.OAuthConfig{
 		ClientID:    "your_client_id",
 		Secret:      "your_secret",
 		CallbackUrl: "http://your.domain/auth/login_callback/wechat_qrcode",
@@ -98,7 +114,7 @@ func main() {
 	})
 	if regErr := gAuth.RegisterProvider(wxProvider, oauthRender); regErr != nil {
 		panic(regErr)
-	}
+	}*/
 
 	if mountErr := gAuth.MountAuth(); mountErr != nil {
 		panic(mountErr)

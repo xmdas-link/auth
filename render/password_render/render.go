@@ -32,7 +32,19 @@ func (r *Render) Error(c *gin.Context) (ret *auth.Result, err error) {
 }
 
 func (r *Render) GuideLogin(c *gin.Context) (ret *auth.Result, err error) {
-	ret = auth.NewTmplResult("password_login.tmpl", gin.H{})
+
+	var (
+		value = gin.H{
+			"captcha": c.GetBool("captcha"),
+		}
+	)
+	if c.GetString("refresh") == "captcha" {
+		value["captchaImg"] = c.GetString("captchaImg")
+		value["captchaId"] = c.GetString("captchaId")
+		ret = auth.NewJSONResult(value)
+	} else {
+		ret = auth.NewTmplResult("password_login.tmpl", value)
+	}
 	return
 }
 

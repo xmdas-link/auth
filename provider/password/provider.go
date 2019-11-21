@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"github.com/mojocn/base64Captcha"
 	"github.com/xmdas-link/auth"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -15,6 +16,7 @@ type Provider struct {
 	DB        *gorm.DB
 	CryptCost int
 	Name      string
+	Captcha   *base64Captcha.ConfigCharacter
 }
 
 // 注册Provider时执行
@@ -40,7 +42,19 @@ func (p *Provider) GetName() string {
 
 // 登录引导
 func (p *Provider) OnGuideLogin(c *gin.Context) error {
-	// 没啥需要准备的
+	if p.Captcha != nil {
+		c.Set("captcha", true)
+		// 需要使用验证码
+		if c.Query("refresh") == "captcha" {
+			idKeyC, capC := base64Captcha.GenerateCaptcha("", *p.Captcha)
+			base64Png := base64Captcha.CaptchaWriteToBase64Encoding(capC)
+			//log.Print("验证码：", idKeyC)
+			//log.Print("base64", base64Png)
+			c.Set("captchaImg", base64Png)
+			c.Set("captchaId", idKeyC)
+			c.Set("refresh", "captcha")
+		}
+	}
 	return nil
 }
 
@@ -51,6 +65,13 @@ func (p *Provider) OnLogin(c *gin.Context) (u auth.User, err error) {
 		loginName = c.PostForm("user")
 		pass      = c.PostForm("pass")
 	)
+
+	if p.Captcha != nil {
+		err = p.VerifyCaptcha(c.PostForm("captcha_id"), c.PostForm("captcha"))
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	if loginName == "" {
 		return nil, errors.New("请输入账号")
@@ -133,4 +154,17 @@ func (p *Provider) EncryptPassword(pass string) (string, error) {
 
 func (p *Provider) ComparePassword(hashedPassword string, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}
+
+func (p *Provider) VerifyCaptcha(id, value string) error {
+	if id == "" {
+		return errors.New("缺少随机码ID")
+	}
+	if value == "" {
+		return errors.New("需要验证随机码")
+	}
+	if base64Captcha.VerifyCaptcha(id, value) {
+		return nil
+	}
+	return errors.New("随机码错误")
 }

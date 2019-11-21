@@ -9,6 +9,8 @@ require (
 	github.com/go-redis/redis v6.15.5+incompatible
 	github.com/jinzhu/gorm v1.9.10
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2
 	github.com/xmdas-link/tools v0.0.0-20190910081610-37b401284be4
 	golang.org/x/crypto v0.0.0-20190909091759-094676da4a83
+	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8 // indirect
 )

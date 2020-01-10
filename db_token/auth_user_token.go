@@ -13,8 +13,9 @@ type AuthUserToken struct {
 	Token     string `gorm:"size:32;index:idx_token"`
 	TokenInfo string `gorm:"type:TEXT"`
 	IP        string `gorm:"size:32"`
-	ExpiredAt int64  `gorm:"index:idx_expired_at"`
+	ExpiredAt int64
 	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (AuthUserToken) TableName() string {

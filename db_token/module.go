@@ -96,7 +96,11 @@ func (m *Module) ClearToken(tokenMd5 string) error {
 	var (
 		tx = m.DB
 	)
-	return tx.Delete(&AuthUserToken{}, "token = ?", tokenMd5).Error
+	return tx.Model(AuthUserToken{}).Where("token = ?", tokenMd5).Updates(map[string]interface{}{
+		"token":      "",
+		"token_info": "",
+		"expired_at": 0,
+	}).Error
 }
 
 // 清除用户的Token
@@ -105,7 +109,11 @@ func (m *Module) ClearTokenOfUser(uid string, provider string) error {
 		tx = m.DB
 	)
 
-	return tx.Delete(&AuthUserToken{}, "uid = ? AND provider = ?", uid, provider).Error
+	return tx.Model(AuthUserToken{}).Where("uid = ? AND provider = ?", uid, provider).Updates(map[string]interface{}{
+		"token":      "",
+		"token_info": "",
+		"expired_at": 0,
+	}).Error
 }
 
 // 查找token

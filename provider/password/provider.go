@@ -48,8 +48,6 @@ func (p *Provider) OnGuideLogin(c *gin.Context) error {
 		if c.Query("refresh") == "captcha" {
 			idKeyC, capC := base64Captcha.GenerateCaptcha("", *p.Captcha)
 			base64Png := base64Captcha.CaptchaWriteToBase64Encoding(capC)
-			//log.Print("验证码：", idKeyC)
-			//log.Print("base64", base64Png)
 			c.Set("data", map[string]interface{}{
 				"captchaImg": base64Png,
 				"captchaId":  idKeyC,

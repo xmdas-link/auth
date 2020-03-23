@@ -65,6 +65,10 @@ func (r *Render) SuccessLogin(c *gin.Context, u auth.User) (ret *auth.Result, er
 		"expired": u.GetExpired(),
 	}
 
+	if extraData, exist := c.Get("data"); exist {
+		data["data"] = extraData
+	}
+
 	result := gin.H{"code": 1, "data": data, "message": ""}
 	ret = auth.NewJSONResult(result)
 	if r.LogFunc != nil {

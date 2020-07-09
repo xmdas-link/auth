@@ -101,14 +101,11 @@ func (m *Module) NewToken(user map[string]string) (string, int64, error) {
 		log.Printf("ERROR: [redis_token.NewToken]%v", err)
 	}
 
-	return token, expiredAt, err
+	return m.EncodeToken(token), expiredAt, err
 }
 
 // 清除Token
-func (m *Module) ClearToken(token string) error {
-	var (
-		tokenMd5 = m.EncodeToken(token)
-	)
+func (m *Module) ClearToken(tokenMd5 string) error {
 	return m.client.Del(tokenMd5).Err()
 }
 
@@ -124,21 +121,15 @@ func (m *Module) ClearTokenOfUser(uid string, provider string) error {
 }
 
 // 查找token
-func (m *Module) FindToken(token string) (user map[string]string) {
+func (m *Module) FindToken(tokenMd5 string) (user map[string]string) {
 
-	var (
-		tokenMd5 = m.EncodeToken(token)
-	)
-
-	if jwtToken, err := m.client.Get(tokenMd5).Result(); err != nil {
+	jwtToken, err := m.client.Get(tokenMd5).Result()
+	if err != nil {
 		log.Printf("ERROR: [redis_token FindToken]%v", err)
-		return nil
-	} else if jwtToken != token {
-		log.Printf("ERROR: [redis_token FindToken] JWT not match. Expect %s, get %s", token, jwtToken)
 		return nil
 	}
 
-	tokenObj, err := jwt.ParseWithClaims(token, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+	tokenObj, err := jwt.ParseWithClaims(jwtToken, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return m.verifyKey, nil
 	})
 

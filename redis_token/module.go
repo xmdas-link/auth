@@ -121,12 +121,16 @@ func (m *Module) ClearTokenOfUser(uid string, provider string) error {
 			return err
 		} else {
 			for _, keyValue := range keys {
-				m.ClearToken(keyValue)
+				m.clearTokenInKey(keyValue)
 			}
 			return nil
 		}
 	}
 
+	return m.clearTokenInKey(key)
+}
+
+func (m *Module) clearTokenInKey(key string) error {
 	if oldToken, err := m.client.Get(key).Result(); err == nil && oldToken != "" {
 		return m.ClearToken(oldToken)
 	}

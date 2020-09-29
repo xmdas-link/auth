@@ -115,8 +115,16 @@ func (m *Module) ClearTokenOfUser(uid string, provider string) error {
 		key = m.GetUserTokenKey(uid, provider)
 	)
 
-	if provider == "all" {
-		key = uid
+	if provider == "*" {
+		if keys, err := m.client.Keys(key).Result(); err != nil {
+			log.Printf("[Redis ClearTokenOfUser] %v", err)
+			return err
+		} else {
+			for _, keyValue := range keys {
+				m.ClearToken(keyValue)
+			}
+			return nil
+		}
 	}
 
 	if oldToken, err := m.client.Get(key).Result(); err == nil && oldToken != "" {

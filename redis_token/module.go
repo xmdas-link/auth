@@ -114,6 +114,11 @@ func (m *Module) ClearTokenOfUser(uid string, provider string) error {
 	var (
 		key = m.GetUserTokenKey(uid, provider)
 	)
+
+	if provider == "all" {
+		key = uid
+	}
+
 	if oldToken, err := m.client.Get(key).Result(); err == nil && oldToken != "" {
 		return m.ClearToken(oldToken)
 	}

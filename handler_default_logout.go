@@ -32,7 +32,9 @@ func DefaultLogoutHandler(c *gin.Context, gAuth *GinAuth) {
 			p := gAuth.GetProvider(providerName)
 			r := gAuth.GetRender(providerName)
 			if p == nil || r == nil {
-				err = errors.New("Provider or Render missing!")
+				// err = errors.New("Provider or Render missing!")
+				// 不知道渲染方式的话，返回JSON
+				DefaultJsonSuccess(c, nil)
 			} else {
 				p.OnLogout(c)
 				ret, err := r.Logout(c)

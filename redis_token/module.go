@@ -32,6 +32,7 @@ type Module struct {
 	signKey   *rsa.PrivateKey
 	verifyKey *rsa.PublicKey
 	*Config
+	Log bool
 }
 
 func New(cfg *Config) (*Module, error) {
@@ -172,7 +173,9 @@ func (m *Module) StoreToken(claim *UserClaims, token string) error {
 		return errors.New("User缺少必要的字段")
 	}
 
-	log.Printf("StoreToken:len(%d):%v", len(token), token)
+	if m.Log {
+		log.Printf("StoreToken:len(%d):%v", len(token), token)
+	}
 
 	// 清除旧token
 	m.ClearTokenOfUser(user["id"], user["provider"])
